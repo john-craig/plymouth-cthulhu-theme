@@ -30,13 +30,23 @@ fun background_setup()
     cthulhu_sprite.SetZ(-10000); # Place right at the back
   }
 
+fun refresh_callback ()
+  {
+    # Currently we do nothing here
+  }
+
 fun display_normal_callback ()
   {
     global.status = "normal";
     if (global.dialog)
       dialog_opacity (0);
   }
+
+
+
 status = "normal";
 background_setup();
 
 Plymouth.SetDisplayNormalFunction(display_normal_callback);
+  
+Plymouth.SetRefreshFunction (refresh_callback);
