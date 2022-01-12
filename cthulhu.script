@@ -130,5 +130,6 @@ fun quit_callback ()
 status = "normal";
 background_setup();
 
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
 Plymouth.SetQuitFunction(quit_callback);
