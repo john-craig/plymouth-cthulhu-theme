@@ -4,31 +4,28 @@ GLYPH_RATIO = 3 / 4;
 
 /*------------ Callbacks ------------*/
 
-fun background_setup()
-  {
-    #Set cthulhu image as background
-    cthulhu_image = Image("cthulhu.png");
+#Set cthulhu image as background
+cthulhu_image = Image("cthulhu.png");
 
-    screen_ratio = Window.GetHeight() / Window.GetWidth();
-    cthulhu_image_ratio = cthulhu_image.GetHeight() / cthulhu_image.GetWidth();
+screen_ratio = Window.GetHeight() / Window.GetWidth();
+cthulhu_image_ratio = cthulhu_image.GetHeight() / cthulhu_image.GetWidth();
 
-    if (screen_ratio > cthulhu_image_ratio)
-      {  # Screen ratio is taller than image ratio, we will match the screen height
-        scale_factor =  Window.GetHeight() / cthulhu_image.GetHeight();
-      }
-    else
-      {  # Screen ratio is wider than image ratio, we will match the screen width
-        scale_factor =  Window.GetWidth() / cthulhu_image.GetWidth();
-      }
-
-    scaled_cthulhu_image = cthulhu_image.Scale(cthulhu_image.GetWidth()  * scale_factor,
-                                            cthulhu_image.GetHeight() * scale_factor);
-    cthulhu_sprite = Sprite(scaled_cthulhu_image); # Create the a sprite using the scaled image
-
-    cthulhu_sprite.SetX(Window.GetWidth()  / 2 - scaled_cthulhu_image.GetWidth () / 2); # Place in the centre
-    cthulhu_sprite.SetY(Window.GetHeight() / 2 - scaled_cthulhu_image.GetHeight() / 2);
-    cthulhu_sprite.SetZ(-10000); # Place right at the back
+if (screen_ratio > cthulhu_image_ratio)
+  {  # Screen ratio is taller than image ratio, we will match the screen height
+    scale_factor =  Window.GetHeight() / cthulhu_image.GetHeight();
   }
+else
+  {  # Screen ratio is wider than image ratio, we will match the screen width
+    scale_factor =  Window.GetWidth() / cthulhu_image.GetWidth();
+  }
+
+scaled_cthulhu_image = cthulhu_image.Scale(cthulhu_image.GetWidth()  * scale_factor,
+                                        cthulhu_image.GetHeight() * scale_factor);
+cthulhu_sprite = Sprite(scaled_cthulhu_image); # Create the a sprite using the scaled image
+
+cthulhu_sprite.SetX(Window.GetWidth()  / 2 - scaled_cthulhu_image.GetWidth () / 2); # Place in the centre
+cthulhu_sprite.SetY(Window.GetHeight() / 2 - scaled_cthulhu_image.GetHeight() / 2);
+cthulhu_sprite.SetZ(-10000); # Place right at the back
 
 fun dialog_setup()
   {
@@ -99,35 +96,37 @@ fun display_normal_callback ()
 fun display_password_callback (prompt, bullets)
   {
     global.status = "password";
+    global.offset = 0;
+
     if (!global.dialog)
 	dialog_setup();
     else
 	dialog_opacity(1);
-    bullet_offset_x = 0;
     for (index = 0; dialog.bullet[index] || index < bullets; index++)
       {
         if (!dialog.bullet[index])
           {
             //Get random glyph
             glyph = Math.Int(Math.Random() * NUM_GLYPHS) - 1;
-            //glyph = index;
             
             //Scale it
             scale_factor = dialog.entry.image.GetHeight() * GLYPH_RATIO / dialog.glyphs[glyph].image.GetHeight();
             scaled_bullet = dialog.glyphs[glyph].image.Scale(dialog.glyphs[glyph].image.GetWidth() * scale_factor,
                                                          dialog.glyphs[glyph].image.GetHeight() * scale_factor);
-
-            dialog.bullet[index].sprite = Sprite(scaled_bullet);
+            
+            //if (index > 0)
+            //  {
+            //    prev_index = index - 1;
+            //    bullet_offset = dialog.bullet[prev_index].x + dialog.bullet[prev_index].w;
+            //  }
 
             //Set position
-            dialog.bullet[index].x = dialog.entry.x + bullet_offset_x;
+            dialog.bullet[index].x = dialog.entry.x + global.offset;
             dialog.bullet[index].y = dialog.entry.y + dialog.entry.image.GetHeight() / 2 - scaled_bullet.GetHeight() / 2;
             dialog.bullet[index].z = dialog.entry.z + 1;
-            dialog.bullet[index].w = scaled_bullet.GetWidth();
             dialog.bullet[index].sprite.SetPosition(dialog.bullet[index].x, dialog.bullet[index].y, dialog.bullet[index].z);
 
-            //Update offset
-            bullet_offset_x = bullet_offset_x + scaled_bullet.GetWidth();
+            global.offset = global.offset + scaled_bullet.GetWidth();
           }
         if (index < bullets)
           dialog.bullet[index].sprite.SetOpacity(1);
