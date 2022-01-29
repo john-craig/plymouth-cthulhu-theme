@@ -1,5 +1,10 @@
-# This is an example plymouth plugin script
+/*------------ Constants ------------*/
+NUM_GLYPHS = 35;
+GLYPH_RATIO = 3 / 4;
 
+/*------------ Callbacks ------------*/
+
+#Set cthulhu image as background
 cthulhu_image = Image("cthulhu.png");
 
 screen_ratio = Window.GetHeight() / Window.GetWidth();
@@ -7,71 +12,69 @@ cthulhu_image_ratio = cthulhu_image.GetHeight() / cthulhu_image.GetWidth();
 
 if (screen_ratio > cthulhu_image_ratio)
   {  # Screen ratio is taller than image ratio, we will match the screen height
-     scale_factor =  Window.GetHeight() / cthulhu_image.GetHeight();
+    scale_factor =  Window.GetHeight() / cthulhu_image.GetHeight();
   }
 else
   {  # Screen ratio is wider than image ratio, we will match the screen width
-     scale_factor =  Window.GetWidth() / cthulhu_image.GetWidth();
+    scale_factor =  Window.GetWidth() / cthulhu_image.GetWidth();
   }
 
 scaled_cthulhu_image = cthulhu_image.Scale(cthulhu_image.GetWidth()  * scale_factor,
-                                         cthulhu_image.GetHeight() * scale_factor);
+                                        cthulhu_image.GetHeight() * scale_factor);
 cthulhu_sprite = Sprite(scaled_cthulhu_image); # Create the a sprite using the scaled image
 
 cthulhu_sprite.SetX(Window.GetWidth()  / 2 - scaled_cthulhu_image.GetWidth () / 2); # Place in the centre
 cthulhu_sprite.SetY(Window.GetHeight() / 2 - scaled_cthulhu_image.GetHeight() / 2);
 cthulhu_sprite.SetZ(-10000); # Place right at the back
 
-
-
-
-
-fun refresh_callback ()
-  {
-    # Currently we do nothing here
-  }
-  
-Plymouth.SetRefreshFunction (refresh_callback);
-
-#----------------------------------------- Dialogue --------------------------------
-
-status = "normal";
-
 fun dialog_setup()
   {
+
     local.box;
     local.lock;
     local.entry;
+    local.glyphs;
     
     box.image = Image("box.png");
     lock.image = Image("lock.png");
     entry.image = Image("entry.png");
     
+    //Set box position
     box.sprite = Sprite(box.image);
     box.x = Window.GetWidth()  / 2 - box.image.GetWidth ()/2;
     box.y = Window.GetHeight() / 2 - box.image.GetHeight()/2;
     box.z = 10000;
     box.sprite.SetPosition(box.x, box.y, box.z);
     
+    //Set lock position
     lock.sprite = Sprite(lock.image);
-    lock.x = box.x + box.image.GetWidth()/2 - (lock.image.GetWidth() + entry.image.GetWidth()) / 2;
+    lock.x = box.x - lock.image.GetWidth();
     lock.y = box.y + box.image.GetHeight()/2 - lock.image.GetHeight()/2;
     lock.z = box.z + 1;
     lock.sprite.SetPosition(lock.x, lock.y, lock.z);
     
+    //Set entry position... not sure I'm going to use this, ultimately
     entry.sprite = Sprite(entry.image);
-    entry.x = lock.x + lock.image.GetWidth();
+    entry.x = box.x + box.image.GetWidth()/2 - entry.image.GetWidth()/2;
     entry.y = box.y + box.image.GetHeight()/2 - entry.image.GetHeight()/2;
     entry.z = box.z + 1;
     entry.sprite.SetPosition(entry.x, entry.y, entry.z);
     
+    //Load all possible bullets
+    for ( index = 0; index < NUM_GLYPHS; index++ )
+      {
+        glyphs[index].image = Image("bullet" + index + ".png");
+      }
+    //glyphs[0].image = Image("bullet1.png");
+
     global.dialog.box = box;
     global.dialog.lock = lock;
     global.dialog.entry = entry;
-    global.dialog.bullet_image = Image("bullet.png");
+    global.dialog.glyphs = glyphs;
+    global.dialog.bullet_image = Image("bullet1.png");
     dialog_opacity (1);
   }
-    
+
 fun dialog_opacity(opacity)
   {
     dialog.box.sprite.SetOpacity (opacity);
@@ -93,6 +96,8 @@ fun display_normal_callback ()
 fun display_password_callback (prompt, bullets)
   {
     global.status = "password";
+    global.offset = 0;
+
     if (!global.dialog)
 	dialog_setup();
     else
@@ -101,66 +106,42 @@ fun display_password_callback (prompt, bullets)
       {
         if (!dialog.bullet[index])
           {
-            dialog.bullet[index].sprite = Sprite(dialog.bullet_image);
+            //Get random glyph
+            glyph = Math.Int(Math.Random() * NUM_GLYPHS) - 1;
+            
+            //Scale it
+            scale_factor = dialog.entry.image.GetHeight() * GLYPH_RATIO / dialog.glyphs[glyph].image.GetHeight();
+            scaled_bullet = dialog.glyphs[glyph].image.Scale(dialog.glyphs[glyph].image.GetWidth() * scale_factor,
+                                                         dialog.glyphs[glyph].image.GetHeight() * scale_factor);
+
+            //Set position
+            //dialog.bullet[index].x = dialog.entry.x + global.offset;
             dialog.bullet[index].x = dialog.entry.x + index * dialog.bullet_image.GetWidth();
-            dialog.bullet[index].y = dialog.entry.y + dialog.entry.image.GetHeight() / 2 - dialog.bullet_image.GetHeight() / 2;
+            dialog.bullet[index].y = dialog.entry.y + dialog.entry.image.GetHeight() / 2 - scaled_bullet.GetHeight() / 2;
             dialog.bullet[index].z = dialog.entry.z + 1;
             dialog.bullet[index].sprite.SetPosition(dialog.bullet[index].x, dialog.bullet[index].y, dialog.bullet[index].z);
+
+            global.offset = global.offset + scaled_bullet.GetWidth();
           }
         if (index < bullets)
           dialog.bullet[index].sprite.SetOpacity(1);
         else
           dialog.bullet[index].sprite.SetOpacity(0);
+        
+        //if (dialog.bullet[index].x > dialog.entry.x + dialog.entry.image.GetWidth())
+        //  dialog.bullet[index].sprite.SetOpacity(0);
       }
   }
-
-Plymouth.SetDisplayNormalFunction(display_normal_callback);
-Plymouth.SetDisplayPasswordFunction(display_password_callback);
-
-#----------------------------------------- Progress Bar --------------------------------
-
-progress_box.image = Image("progress_box.png");
-progress_box.sprite = Sprite(progress_box.image);
-
-progress_box.x = Window.GetWidth()  / 2 -    progress_box.image.GetWidth()  / 2;
-progress_box.y = Window.GetHeight() * 0.75 - progress_box.image.GetHeight() / 2;
-progress_box.sprite.SetPosition(progress_box.x, progress_box.y, 0);
-
-progress_bar.original_image = Image("progress_bar.png");
-progress_bar.sprite = Sprite();
-
-progress_bar.x = Window.GetWidth()  / 2 -        progress_bar.original_image.GetWidth() / 2;
-progress_bar.y = Window.GetHeight() / 2 * 1.5  - progress_box.image.GetHeight() / 2 + (progress_box.image.GetHeight() - progress_bar.original_image.GetHeight()) / 2;
-progress_bar.sprite.SetPosition(progress_bar.x, progress_bar.y, 1);
-
-fun progress_callback (duration, progress)
-  {
-    if (progress_bar.image.GetWidth () != Math.Int (progress_bar.original_image.GetWidth () * progress))
-      {
-        progress_bar.image = progress_bar.original_image.Scale(progress_bar.original_image.GetWidth(progress_bar.original_image) * progress, progress_bar.original_image.GetHeight());
-        progress_bar.sprite.SetImage (progress_bar.image);
-      }
-  }
-
-Plymouth.SetBootProgressFunction(progress_callback);
-
-#----------------------------------------- Quit --------------------------------
 
 fun quit_callback ()
 {
 }
 
+/*------------ Set callbacks ------------*/
+
+status = "normal";
+background_setup();
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
 Plymouth.SetQuitFunction(quit_callback);
-
-#----------------------------------------- Message --------------------------------
-
-message_sprite = Sprite();
-message_sprite.SetPosition(10, 10, 10000);
-
-fun message_callback (text)
-{
-  my_image = Image.Text(text, 1, 1, 1);
-  message_sprite.SetImage(my_image);
-}
-
-Plymouth.SetMessageFunction(message_callback);
